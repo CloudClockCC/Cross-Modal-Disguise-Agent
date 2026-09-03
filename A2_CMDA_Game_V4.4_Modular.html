@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>A2 Cross-Modal Disguise Agent - Game V4.4 Modular</title>
+  <link rel="stylesheet" href="styles/app.css">
+</head>
+<body>
+  <header>
+    <h1>A2 Cross-Modal Disguise Agent</h1>
+    <div class="header-actions">
+      <button class="button header-button" id="nav-back" type="button" data-i18n="navBack">上一步</button>
+      <button class="button header-button" id="nav-home" type="button" data-i18n="navHome">主界面</button>
+      <button class="button header-button" id="nav-levels" type="button" data-i18n="navLevels">关卡选择</button>
+      <div class="language-toggle" role="group" aria-label="Language">
+        <button class="active" type="button" data-lang="zh" aria-pressed="true">中文</button>
+        <button type="button" data-lang="en" aria-pressed="false">EN</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="view active" id="view-home">
+      <div class="home-v432">
+        <section class="home-v432-hero">
+          <img src="images_AIgen/storybook_concepts/home_captain_recruitment_v1.png" alt="Captain welcoming the player to the training base">
+          <div class="home-v432-copy"><div class="home-v432-kicker" data-i18n="homeRecruitmentKicker">A2 · 训练基地招募处</div><h2 class="home-v432-title" data-i18n="homeTitle">跨模态特工</h2><div class="home-v432-speech" data-i18n="homeCaptainSpeech">训练基地发现了一种奇怪现象。你愿意和我一起调查吗？</div></div>
+          <div class="home-v432-stamp">NEW MISSION</div>
+          <div class="home-v432-keywords"><span data-i18n="homeObserve">观察图片</span><span data-i18n="homeSticker">添加贴纸</span><span data-i18n="homeTest">检验判断</span></div>
+        </section>
+        <aside class="home-v432-menu"><h2 data-i18n="homeMenu">任务入口</h2><p data-i18n="homeMenuLead">接受 Captain 的招募，进入第一项调查。</p>
+          <div class="home-v432-buttons"><button class="button primary" type="button" data-action="start-game" data-i18n="acceptRecruitment">接受招募</button><button class="button replay" type="button" data-action="start-game" data-i18n="replayRecruitment">重看招募故事</button><button class="button" type="button" data-view-target="levels" data-i18n="navLevels">关卡选择</button><button class="button" type="button" data-view-target="history" data-i18n="myGame">我的游戏 / 历史记录</button><button class="button" type="button" data-action="toggle-language" data-i18n="settingsLanguage">设置 / 语言</button></div>
+          <div class="agent-profile" id="home-agent-profile"></div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="view" id="view-intro">
+      <div class="intro-comic-shell" id="intro-comic-stage">
+        <section class="intro-comic">
+          <div class="intro-comic-viewport"><div class="intro-comic-track" id="intro-comic-track">
+            <article class="intro-comic-slide">
+              <div class="intro-comic-art"><img src="images_AIgen/storybook_concepts/intro_panel_1_wall_display_v2.png" alt="Captain observing an AI scanner analyzing a street clock"><div class="intro-baseline">clock：100%</div></div>
+              <div class="intro-narration" data-i18n="comicIntro1">训练基地的AI正在识别一张钟表图片。现在模型对clock的识别为100%</div>
+              <button class="button intro-skip" type="button" data-action="intro-skip" data-i18n="skipIntro">跳过引导</button>
+            </article>
+            <article class="intro-comic-slide">
+              <div class="intro-comic-art"><img src="images_AIgen/storybook_concepts/intro_panel_2_blank_sticker_v1.png" alt="Captain presenting a TAXI sticker"><div class="intro-taxi">TAXI</div></div>
+              <div class="intro-narration" data-i18n="comicIntro2">如果在钟表图片上贴一个 TAXI，会发生什么？</div>
+              <button class="button intro-skip" type="button" data-action="intro-skip" data-i18n="skipIntro">跳过引导</button>
+            </article>
+            <article class="intro-comic-slide intro-panel-three">
+              <div class="intro-comic-art"><img src="images_AIgen/storybook_concepts/intro_panel_3_prediction_shift_v1.png" alt="AI prediction shifting from clock toward taxi"><div class="intro-taxi">TAXI</div><div class="intro-prediction clock">clock&nbsp; 42% ↓</div><div class="intro-prediction taxi">taxi&nbsp; 68% ↑</div></div>
+              <div class="intro-narration" data-i18n="comicIntro3">神奇的事情发生了，模型的判断被拉动。模型开始认为这个是“taxi”而非“Clock”</div>
+              <button class="button intro-skip" type="button" data-action="intro-skip" data-i18n="skipIntro">跳过引导</button>
+            </article>
+            <article class="intro-comic-slide">
+              <div class="intro-comic-art"><img src="images_AIgen/storybook_concepts/intro_panel_4_agent_handoff_v1.png" alt="Captain handing an agent mission card to the player"><div class="intro-mission-label" data-i18n="missionCardLabel">特工任务卡</div></div>
+              <div class="intro-narration" data-i18n="comicIntro4">现在轮到你了，准备进入特工训练营吧</div>
+              <button class="button primary intro-open-file" type="button" data-action="intro-open-file" data-i18n="viewAgentFile">查看特工档案</button>
+              <button class="button intro-skip" type="button" data-action="intro-skip" data-i18n="skipIntro">跳过引导</button>
+            </article>
+          </div></div>
+          <div class="intro-comic-nav">
+            <button class="button" type="button" id="intro-comic-back" data-i18n="previousPanel">上一格</button>
+            <div class="intro-comic-progress" id="intro-comic-progress" aria-label="Comic progress"></div>
+            <button class="button primary" type="button" id="intro-comic-next" data-i18n="nextPanel">下一格</button>
+          </div>
+        </section>
+      </div>
+
+      <div class="view-shell" id="intro-file-stage" hidden>
+        <section class="intro-file">
+          <div class="intro-file-kicker"><span data-i18n="agentFileLabel">AGENT FILE / 特工档案</span><span>A2 · 01</span></div>
+          <div class="intro-file-grid">
+            <aside class="intro-identity">
+              <div class="intro-avatar"><img src="images_AIgen/storybook_concepts/captain_gentle_heroic_gaze_v3.png" alt="Captain"></div>
+              <h2>Cross-Modal<br>Disguise Agent</h2>
+              <p data-i18n="agentIdentityBody">观察图片与文字如何共同影响 AI 判断。</p>
+            </aside>
+            <section class="intro-details">
+              <h2 data-i18n="trainingBriefTitle">你的训练简报</h2>
+              <article class="intro-mission-brief"><strong data-i18n="yourMission">你的任务</strong><p data-i18n="missionIntroBody">你的任务是通过给具体的图片贴上迷惑贴纸的方式，骗过模型。</p><p data-i18n="missionIntroExample">比如在我们的任务中，通过给钟表图片贴上“Taxi”文字贴纸的形式，让模型误以为这是 taxi 而非钟表，达到误导模型的效果。</p></article>
+              <div class="intro-training"><strong data-i18n="trainingPath">训练路径</strong><div class="intro-training-steps"><div class="intro-training-step"><div class="intro-training-dot"></div><span data-i18n="seeImage">看到图片</span></div><div class="intro-training-step"><div class="intro-training-dot"></div><span data-i18n="addDisguiseSticker">贴上迷惑贴纸</span></div><div class="intro-training-step"><div class="intro-training-dot"></div><span data-i18n="observeModelResult">观察模型结果</span></div></div></div>
+            </section>
+          </div>
+          <div class="intro-file-actions"><button class="button" type="button" data-action="intro-back-comic" data-i18n="backToComic">返回漫画</button><button class="button primary" type="button" data-view-target="levels" data-i18n="goLevels">进入关卡选择</button></div>
+        </section>
+      </div>
+    </section>
+
+    <section class="view" id="view-levels">
+      <div class="view-shell">
+        <section class="panel">
+          <h2 data-i18n="levelSelectTitle">关卡选择</h2>
+          <p class="muted" data-i18n="levelSelectBody">先完成一次新手训练，再进入正式关卡。简单关卡和升级关卡可以自由选择。</p>
+          <div class="level-section-list" id="level-sections"></div>
+        </section>
+      </div>
+    </section>
+
+    <section class="view" id="view-briefing">
+      <div class="view-shell grid-2">
+        <section class="panel">
+          <h2 id="briefing-title">关卡说明</h2>
+          <div class="meta-grid">
+            <div class="meta-card">
+              <strong data-i18n="sourceLabel">原类别</strong>
+              <span id="brief-source">-</span>
+            </div>
+            <div class="meta-card">
+              <strong data-i18n="targetLabel">目标类别</strong>
+              <span id="brief-target">-</span>
+            </div>
+            <div class="meta-card">
+              <strong data-i18n="statusLabel">状态</strong>
+              <span id="brief-status">-</span>
+            </div>
+          </div>
+          <div class="tip-card" id="why-card">
+            <strong id="why-question">-</strong>
+            <p class="muted" id="why-explanation">-</p>
+          </div>
+          <div class="nav-row split">
+            <button class="button" type="button" data-view-target="levels" data-i18n="navLevels">关卡选择</button>
+            <button class="button primary" type="button" data-action="enter-challenge" data-i18n="enterChallenge">进入挑战</button>
+          </div>
+        </section>
+        <section class="panel">
+          <img id="brief-image" alt="Mission preview" style="width:100%; border-radius:8px; aspect-ratio:1/1; object-fit:cover;">
+        </section>
+      </div>
+    </section>
+
+    <section class="view" id="view-challenge">
+      <div class="stage-layout">
+        <section class="panel" style="padding:0; overflow:hidden;">
+          <div class="training-banner" id="training-banner">
+            <strong id="training-title">-</strong>
+            <span id="training-body">-</span>
+          </div>
+          <div class="score-strip">
+            <div class="score-tile">
+              <div class="score-label" data-i18n="topPrediction">AI 最高预测</div>
+              <div class="score-value" id="score-top">-</div>
+            </div>
+            <div class="score-tile">
+              <div class="score-label" data-i18n="attackSuccess">攻击成功</div>
+              <div class="score-value" id="score-attack">-</div>
+            </div>
+            <div class="score-tile">
+              <div class="score-label" data-i18n="influenceStrength">影响强度</div>
+              <div class="score-value" id="score-influence">-</div>
+            </div>
+            <div class="score-tile">
+              <div class="score-label" data-i18n="stealthScore">隐蔽性</div>
+              <div class="score-value" id="score-stealth">-</div>
+            </div>
+          </div>
+          <div class="image-stage">
+            <div class="image-card" id="image-card">
+              <img id="challenge-image" alt="Challenge image">
+              <div class="agent-sticker" id="sticker">TAXI</div>
+              <div class="scanner" aria-hidden="true"></div>
+            </div>
+            <div class="callout" id="scan-callout"></div>
+          </div>
+        </section>
+
+        <aside class="panel toolbox">
+          <h2 data-i18n="toolboxTitle">特工工具箱</h2>
+          <div class="control-grid">
+            <div class="control-group">
+              <label class="control-label" for="sticker-text"><span data-i18n="stickerText">贴纸文字</span><span class="muted">free input</span></label>
+              <input class="form-text" id="sticker-text" value="TAXI" maxlength="32">
+            </div>
+            <div class="control-group">
+              <label class="control-label" for="size-range"><span data-i18n="stickerSize">贴纸大小</span><span class="muted" id="size-readout">28%</span></label>
+              <div class="size-row">
+                <input class="form-range" id="size-range" type="range" min="1" max="100" value="28">
+                <input class="form-number" id="size-number" type="number" min="1" max="100" value="28">
+              </div>
+            </div>
+            <div class="control-group">
+              <label class="control-label"><span data-i18n="appearance">贴纸外观</span><span class="muted">style</span></label>
+              <div class="compact-row">
+                <div class="color-pair">
+                  <input class="form-color" id="text-color" type="color" value="#111827" aria-label="Text color">
+                  <input class="color-hex" id="text-color-hex" value="#111827" maxlength="7" aria-label="Text color hex">
+                </div>
+                <div class="color-pair">
+                  <input class="form-color" id="bg-color" type="color" value="#ffffff" aria-label="Background color">
+                  <input class="color-hex" id="bg-color-hex" value="#FFFFFF" maxlength="7" aria-label="Background color hex">
+                </div>
+              </div>
+            </div>
+            <div class="control-group">
+              <label class="control-label" for="opacity-range"><span data-i18n="opacity">透明度</span><span class="muted" id="opacity-readout">92%</span></label>
+              <input class="form-range" id="opacity-range" type="range" min="10" max="100" value="92">
+            </div>
+            <div class="control-group">
+              <label class="control-label" for="rotation-range"><span data-i18n="rotation">旋转角度</span><span class="muted" id="rotation-readout">0°</span></label>
+              <input class="form-range" id="rotation-range" type="range" min="-90" max="90" value="0">
+            </div>
+            <div class="control-group">
+              <label class="control-label" for="weight-select"><span data-i18n="fontWeight">字体粗细</span></label>
+              <select class="form-select" id="weight-select">
+                <option value="700">Bold</option>
+                <option value="900" selected>Heavy</option>
+                <option value="500">Medium</option>
+              </select>
+            </div>
+            <div class="nav-row split">
+              <button class="button" type="button" data-action="add-sticker" data-i18n="addSticker" hidden>确认贴纸</button>
+              <button class="button" type="button" data-action="reset-sticker" data-i18n="resetSticker">重置贴纸</button>
+            </div>
+            <button class="button primary" type="button" data-action="run-scan" id="run-scan" data-i18n="runScan">运行模型判断</button>
+            <button class="button primary" type="button" data-action="submit-level" data-i18n="submitDisguise">提交伪装</button>
+            <div class="feedback-box" id="challenge-feedback"></div>
+            <button class="button ghost glossary-button" type="button" data-action="open-glossary" data-i18n="glossary">术语解释</button>
+          </div>
+        </aside>
+      </div>
+      <div class="tutorial-overlay" id="tutorial-overlay" aria-live="polite">
+        <div class="tutorial-arrow" aria-hidden="true"></div>
+        <div class="tutorial-label" id="tutorial-label">特工大队长提示</div>
+        <div class="tutorial-header">
+          <strong id="tutorial-step-title">-</strong>
+          <div class="tutorial-progress" id="tutorial-progress">-</div>
+        </div>
+        <p id="tutorial-step-body">-</p>
+        <div class="nav-row split" style="margin-top:8px;">
+          <button class="button" type="button" data-action="tutorial-prev" id="tutorial-prev">Back</button>
+          <button class="button" type="button" data-action="tutorial-skip" id="tutorial-skip">Skip</button>
+          <button class="button primary" type="button" data-action="tutorial-next" id="tutorial-next">Next</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="view-result">
+      <div class="view-shell result-view-shell">
+        <section class="panel">
+          <h2 data-i18n="resultTitle">单关结果解释</h2>
+          <div class="result-debrief-layout">
+            <div class="result-summary-box">
+              <h3 data-i18n="resultMetrics">结果指标</h3>
+              <div class="result-grid" id="result-grid"></div>
+            </div>
+            <div class="learning-debrief-box">
+              <h3 data-i18n="learningDebrief">学习解释</h3>
+              <div class="debrief-structured" id="result-explanation"></div>
+              <div class="keyword-chip-row" id="result-keywords"></div>
+            </div>
+          </div>
+          <div class="nav-row split">
+            <button class="button" type="button" data-action="retry-level" data-i18n="tryAgain">重新尝试</button>
+            <button class="button" type="button" data-view-target="levels" data-i18n="chooseOther">选择其他关卡</button>
+            <button class="button primary" type="button" data-action="next-level" data-i18n="nextLevel">下一关</button>
+          </div>
+          <div id="result-record" hidden></div>
+        </section>
+      </div>
+    </section>
+
+    <section class="view" id="view-ending">
+      <div class="view-shell grid-2">
+        <section class="panel hero-panel">
+          <h2 data-i18n="endingTitle">恭喜完成所有关卡</h2>
+          <p data-i18n="endingBody">你已经完成全部任务。现在可以查看总得分、最佳伪装和学习总结。</p>
+        </section>
+        <section class="panel">
+          <h2 data-i18n="endingSummary">最终总结</h2>
+          <div class="stat-grid" id="ending-stats"></div>
+          <div class="nav-row">
+            <button class="button" type="button" data-view-target="levels" data-i18n="navLevels">关卡选择</button>
+            <button class="button primary" type="button" data-action="export-csv" data-i18n="exportData">导出数据</button>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="view" id="view-history">
+      <div class="view-shell">
+        <section class="panel">
+          <h2 data-i18n="historyTitle">我的游戏 / 历史记录</h2>
+          <div class="agent-profile" id="history-agent-profile"></div>
+          <div class="stat-grid" id="history-stats"></div>
+          <h3 data-i18n="attemptHistory">历史尝试</h3>
+          <div class="history-list" id="history-list"></div>
+          <div class="nav-row split">
+            <button class="button" type="button" data-view-target="home" data-i18n="navHome">主界面</button>
+            <button class="button primary" type="button" data-action="export-csv" data-i18n="exportData">导出数据</button>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal" id="glossary-modal" role="dialog" aria-modal="true" aria-labelledby="glossary-title">
+    <div class="modal-card">
+      <h2 id="glossary-title" data-i18n="glossary">术语解释</h2>
+      <div class="history-list" id="glossary-list"></div>
+      <div class="nav-row">
+        <button class="button primary" type="button" data-action="close-glossary" data-i18n="close">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="title-unlock-modal" role="dialog" aria-modal="true" aria-labelledby="title-unlock-heading">
+    <div class="modal-card title-unlock-card">
+      <h2 id="title-unlock-heading">新头衔解锁</h2>
+      <div>
+        <span class="sparkle-dot"></span><span class="sparkle-dot"></span><span class="sparkle-dot"></span>
+      </div>
+      <div class="title-badge-large" id="title-unlock-badge">Agent</div>
+      <h3 id="title-unlock-name">-</h3>
+      <p class="muted" id="title-unlock-body">-</p>
+      <div class="nav-row split">
+        <button class="button" type="button" data-action="view-agent-profile">查看我的特工档案</button>
+        <button class="button primary" type="button" data-action="close-title-unlock">继续任务</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="data/app-config.js"></script>
+  <script src="data/translations.js"></script>
+  <script src="data/levels.js"></script>
+  <script src="data/tutorialSteps.js"></script>
+  <script src="scripts/state.js"></script>
+  <script src="scripts/core.js"></script>
+  <script src="scripts/views.js"></script>
+  <script src="scripts/sticker.js"></script>
+  <script src="scripts/scoring.js"></script>
+  <script src="scripts/realModelApi.js"></script>
+  <script src="scripts/gameplay.js"></script>
+  <script src="scripts/logging.js"></script>
+  <script src="scripts/resultDebrief.js"></script>
+  <script src="scripts/glossary.js"></script>
+  <script src="scripts/controls.js"></script>
+  <script src="scripts/main.js"></script>
+</body>
+</html>

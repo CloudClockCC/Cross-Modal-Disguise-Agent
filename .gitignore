@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+runtime_stickered_images/
+real_model_attempt_log.csv
+*_legacy_*.csv
+*.log
+cloudflared-tunnel*.log
+localtunnel*.log
+.DS_Store
+Thumbs.db
+
