@@ -1,6 +1,38 @@
-function logScan(type) {
+async function postLocalDatabase(path, payload) {
+      if (!LOCAL_API_BASE) return;
+      try {
+        await fetch(`${LOCAL_API_BASE}${path}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+      } catch (error) {
+        console.warn("Local database logging failed:", error);
+      }
+    }
+
+    function startDatabaseSession() {
+      postLocalDatabase("/api/session/start", {
+        session_id: state.sessionId,
+        participant_id: "",
+        app_version: "V4.6 Local Database Logging",
+        language: state.language,
+        started_at: new Date(state.trialStart).toISOString()
+      });
+    }
+
+    function persistAttempt(record) {
+      postLocalDatabase("/api/log-attempt", {
+        ...record,
+        participant_id: record.participant_id || "",
+        app_version: "V4.6 Local Database Logging",
+        language: state.language
+      });
+    }
+
+    function logScan(type) {
       const level = currentLevel();
-      state.attempts.push({
+      const record = {
         type,
         timestamp: new Date().toISOString(),
         session_id: state.sessionId,
@@ -41,7 +73,9 @@ function logScan(type) {
         grade: state.scanResult ? state.scanResult.grade : "",
         uncapped_grade: state.scanResult ? state.scanResult.uncappedGrade || state.scanResult.grade : "",
         composite: state.scanResult ? state.scanResult.composite : ""
-      });
+      };
+      state.attempts.push(record);
+      persistAttempt(record);
     }
 
     function renderResult() {
@@ -179,7 +213,7 @@ function logScan(type) {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `A2_CMDA_Game_V4_3_1_${new Date().toISOString().replace(/[:.]/g, "-")}.csv`;
+      link.download = `A2_CMDA_Game_V4_6_${new Date().toISOString().replace(/[:.]/g, "-")}.csv`;
       document.body.appendChild(link);
       link.click();
       link.remove();

@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import json
 import mimetypes
+import sqlite3
 import sys
 import threading
 from datetime import datetime
@@ -10,19 +11,33 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
-import open_clip
-import torch
-from PIL import Image, ImageDraw, ImageFont
+DEPENDENCY_ERROR: Exception | None = None
+
+try:
+    import open_clip
+    import torch
+    from PIL import Image, ImageDraw, ImageFont
+except Exception as exc:  # Keep the server diagnosable when dependencies are missing.
+    DEPENDENCY_ERROR = exc
+    open_clip = None  # type: ignore[assignment]
+    torch = None  # type: ignore[assignment]
+    Image = None  # type: ignore[assignment]
+    ImageDraw = None  # type: ignore[assignment]
+    ImageFont = None  # type: ignore[assignment]
 
 
 BASE_DIR = Path(__file__).resolve().parent
 IMAGE_DIR = BASE_DIR / "images_AIgen"
 GENERATED_DIR = BASE_DIR / "runtime_stickered_images"
+DATA_STORAGE_DIR = BASE_DIR / "data_storage"
+DATABASE_PATH = DATA_STORAGE_DIR / "a2_cmda_playtest.db"
 ATTEMPT_CSV = BASE_DIR / "real_model_attempt_log.csv"
-PROTOTYPE_HTML = BASE_DIR / "A2_CMDA_Game_V4.4_Modular.html"
+PROTOTYPE_HTML = BASE_DIR / "A2_CMDA_Game_V4.6_LocalDatabase.html"
 
 MODEL_NAME = "ViT-B-32"
 PRETRAINED = "laion2b_s34b_b79k"
+APP_VERSION = "V4.6 Local Database Logging"
+DB_LOCK = threading.Lock()
 
 TEST_CASES = {
     "01_street_clock.png": {
@@ -252,9 +267,253 @@ SCORER: OpenClipScorer | None = None
 
 def get_scorer() -> OpenClipScorer:
     global SCORER
+    if DEPENDENCY_ERROR is not None:
+        raise RuntimeError(
+            "Missing Python dependencies. Please run: pip install -r requirements.txt. "
+            f"Original error: {DEPENDENCY_ERROR}"
+        )
     if SCORER is None:
         SCORER = OpenClipScorer()
     return SCORER
+
+
+def dependency_status() -> dict[str, object]:
+    dependencies_ready = DEPENDENCY_ERROR is None
+    image_files = sorted(path.name for path in IMAGE_DIR.glob("*.png")) if IMAGE_DIR.exists() else []
+    runtime_writable = True
+    try:
+        GENERATED_DIR.mkdir(parents=True, exist_ok=True)
+        probe = GENERATED_DIR / ".write_test"
+        probe.write_text("ok", encoding="utf-8")
+        probe.unlink(missing_ok=True)
+    except Exception:
+        runtime_writable = False
+
+    if dependencies_ready:
+        torch_version = getattr(torch, "__version__", "unknown")
+        openclip_version = getattr(open_clip, "__version__", "unknown")
+        pillow_version = getattr(Image, "__version__", "unknown")
+        cuda_available = bool(torch.cuda.is_available())
+        device = "cuda" if cuda_available else "cpu"
+    else:
+        torch_version = ""
+        openclip_version = ""
+        pillow_version = ""
+        cuda_available = False
+        device = "unavailable"
+
+    return {
+        "app_version": APP_VERSION,
+        "status": "ready" if dependencies_ready and PROTOTYPE_HTML.exists() and IMAGE_DIR.exists() else "needs_attention",
+        "python": sys.version.split()[0],
+        "executable": sys.executable,
+        "model": MODEL_NAME,
+        "pretrained": PRETRAINED,
+        "device": device,
+        "cuda_available": cuda_available,
+        "dependencies_ready": dependencies_ready,
+        "dependency_error": "" if dependencies_ready else str(DEPENDENCY_ERROR),
+        "versions": {
+            "torch": torch_version,
+            "open_clip": openclip_version,
+            "Pillow": pillow_version,
+        },
+        "prototype_html_exists": PROTOTYPE_HTML.exists(),
+        "image_dir_exists": IMAGE_DIR.exists(),
+        "image_count": len(image_files),
+        "runtime_output_writable": runtime_writable,
+        "database_path": str(DATABASE_PATH),
+        "database_writable": database_writable(),
+    }
+
+
+def database_connection() -> sqlite3.Connection:
+    DATA_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
+    connection = sqlite3.connect(DATABASE_PATH)
+    connection.execute("PRAGMA journal_mode=WAL")
+    connection.execute("PRAGMA foreign_keys=ON")
+    return connection
+
+
+def init_database() -> None:
+    with DB_LOCK:
+        with database_connection() as connection:
+            connection.executescript(
+                """
+                CREATE TABLE IF NOT EXISTS sessions (
+                    session_id TEXT PRIMARY KEY,
+                    participant_id TEXT,
+                    app_version TEXT,
+                    language TEXT,
+                    started_at TEXT NOT NULL,
+                    ended_at TEXT,
+                    user_agent TEXT
+                );
+
+                CREATE TABLE IF NOT EXISTS events (
+                    event_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    session_id TEXT,
+                    participant_id TEXT,
+                    event_type TEXT NOT NULL,
+                    level_id TEXT,
+                    timestamp TEXT NOT NULL,
+                    payload_json TEXT NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS attempts (
+                    attempt_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    session_id TEXT,
+                    participant_id TEXT,
+                    trial_id TEXT,
+                    event_type TEXT,
+                    timestamp TEXT NOT NULL,
+                    image_id TEXT,
+                    sticker_text TEXT,
+                    sticker_size REAL,
+                    sticker_position TEXT,
+                    sticker_color TEXT,
+                    sticker_opacity REAL,
+                    sticker_rotation REAL,
+                    sticker_weight TEXT,
+                    model_score_before TEXT,
+                    model_score_after TEXT,
+                    source_score_after REAL,
+                    target_score_before REAL,
+                    target_score_after REAL,
+                    distractor_score_after REAL,
+                    near_target_score_after REAL,
+                    target_probability_delta REAL,
+                    near_target_delta REAL,
+                    target_logit_delta REAL,
+                    generated_image TEXT,
+                    scoring_mode TEXT,
+                    scan_limit TEXT,
+                    scan_limit_exceeded TEXT,
+                    direct_target_used TEXT,
+                    subject_obstruction TEXT,
+                    subject_obstruction_ratio REAL,
+                    obvious_white_sticker TEXT,
+                    tutorial_completed TEXT,
+                    tutorial_step_count TEXT,
+                    tutorial_skipped TEXT,
+                    tutorial_optional_controls_used TEXT,
+                    time_spent INTEGER,
+                    number_of_scans INTEGER,
+                    submitted_result TEXT,
+                    grade TEXT,
+                    uncapped_grade TEXT,
+                    composite REAL,
+                    title_after_submit TEXT,
+                    highest_title_level_after_submit TEXT,
+                    payload_json TEXT NOT NULL
+                );
+                """
+            )
+
+
+def database_writable() -> bool:
+    try:
+        init_database()
+        return DATABASE_PATH.exists()
+    except Exception:
+        return False
+
+
+def current_timestamp() -> str:
+    return datetime.now().isoformat(timespec="seconds")
+
+
+def record_session(payload: dict[str, object], user_agent: str = "") -> dict[str, object]:
+    init_database()
+    session_id = str(payload.get("session_id") or payload.get("sessionId") or "").strip()
+    if not session_id:
+        raise ValueError("session_id is required")
+    participant_id = str(payload.get("participant_id") or payload.get("participantId") or "").strip()
+    language = str(payload.get("language") or "").strip()
+    started_at = str(payload.get("started_at") or payload.get("startedAt") or current_timestamp())
+    with DB_LOCK:
+        with database_connection() as connection:
+            connection.execute(
+                """
+                INSERT INTO sessions (session_id, participant_id, app_version, language, started_at, user_agent)
+                VALUES (?, ?, ?, ?, ?, ?)
+                ON CONFLICT(session_id) DO UPDATE SET
+                    participant_id=excluded.participant_id,
+                    language=excluded.language,
+                    user_agent=excluded.user_agent
+                """,
+                (session_id, participant_id, APP_VERSION, language, started_at, user_agent),
+            )
+    return {"ok": True, "session_id": session_id, "database_path": str(DATABASE_PATH)}
+
+
+def end_session(payload: dict[str, object]) -> dict[str, object]:
+    init_database()
+    session_id = str(payload.get("session_id") or payload.get("sessionId") or "").strip()
+    if not session_id:
+        raise ValueError("session_id is required")
+    ended_at = str(payload.get("ended_at") or payload.get("endedAt") or current_timestamp())
+    with DB_LOCK:
+        with database_connection() as connection:
+            connection.execute(
+                "UPDATE sessions SET ended_at=? WHERE session_id=?",
+                (ended_at, session_id),
+            )
+    insert_event({
+        "type": "session_end",
+        "session_id": session_id,
+        "timestamp": ended_at,
+    })
+    return {"ok": True, "session_id": session_id, "ended_at": ended_at}
+
+
+def insert_event(payload: dict[str, object]) -> None:
+    with DB_LOCK:
+        with database_connection() as connection:
+            connection.execute(
+                """
+                INSERT INTO events (session_id, participant_id, event_type, level_id, timestamp, payload_json)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    str(payload.get("session_id", "")),
+                    str(payload.get("participant_id", "")),
+                    str(payload.get("type") or payload.get("event_type") or "event"),
+                    str(payload.get("trial_id") or payload.get("level_id") or ""),
+                    str(payload.get("timestamp") or current_timestamp()),
+                    json.dumps(payload, ensure_ascii=False),
+                ),
+            )
+
+
+def insert_attempt(payload: dict[str, object]) -> dict[str, object]:
+    init_database()
+    insert_event(payload)
+    columns = [
+        "session_id", "participant_id", "trial_id", "event_type", "timestamp", "image_id",
+        "sticker_text", "sticker_size", "sticker_position", "sticker_color", "sticker_opacity",
+        "sticker_rotation", "sticker_weight", "model_score_before", "model_score_after",
+        "source_score_after", "target_score_before", "target_score_after", "distractor_score_after",
+        "near_target_score_after", "target_probability_delta", "near_target_delta", "target_logit_delta",
+        "generated_image", "scoring_mode", "scan_limit", "scan_limit_exceeded", "direct_target_used",
+        "subject_obstruction", "subject_obstruction_ratio", "obvious_white_sticker", "tutorial_completed",
+        "tutorial_step_count", "tutorial_skipped", "tutorial_optional_controls_used", "time_spent",
+        "number_of_scans", "submitted_result", "grade", "uncapped_grade", "composite",
+        "title_after_submit", "highest_title_level_after_submit"
+    ]
+    values = {column: payload.get(column, "") for column in columns}
+    values["event_type"] = payload.get("type") or payload.get("event_type") or ""
+    placeholders = ", ".join("?" for _ in columns)
+    with DB_LOCK:
+        with database_connection() as connection:
+            cursor = connection.execute(
+                f"""
+                INSERT INTO attempts ({", ".join(columns)}, payload_json)
+                VALUES ({placeholders}, ?)
+                """,
+                [values[column] for column in columns] + [json.dumps(payload, ensure_ascii=False)],
+            )
+    return {"ok": True, "attempt_id": cursor.lastrowid, "database_path": str(DATABASE_PATH)}
 
 
 def append_attempt(row: dict[str, object]) -> None:
@@ -430,13 +689,27 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/":
             self.serve_file(PROTOTYPE_HTML)
             return
+        if path == "/api/health":
+            self.send_json(200, dependency_status())
+            return
         if path == "/api/cases":
             self.send_json(
                 200,
                 {
+                    "app_version": APP_VERSION,
                     "model": MODEL_NAME,
                     "pretrained": PRETRAINED,
                     "cases": TEST_CASES,
+                },
+            )
+            return
+        if path == "/api/database/status":
+            self.send_json(
+                200,
+                {
+                    "ok": database_writable(),
+                    "database_path": str(DATABASE_PATH),
+                    "database_exists": DATABASE_PATH.exists(),
                 },
             )
             return
@@ -448,13 +721,20 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
-        if parsed.path != "/api/score":
-            self.send_error(404)
-            return
         try:
             content_length = int(self.headers.get("Content-Length", "0"))
             payload = json.loads(self.rfile.read(content_length).decode("utf-8"))
-            result = score_attempt(payload)
+            if parsed.path == "/api/score":
+                result = score_attempt(payload)
+            elif parsed.path == "/api/session/start":
+                result = record_session(payload, self.headers.get("User-Agent", ""))
+            elif parsed.path == "/api/log-attempt":
+                result = insert_attempt(payload)
+            elif parsed.path == "/api/session/end":
+                result = end_session(payload)
+            else:
+                self.send_error(404)
+                return
             self.send_json(200, result)
         except Exception as exc:
             self.send_json(400, {"error": str(exc)})
@@ -474,9 +754,15 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def run_server(port: int) -> None:
+    init_database()
     server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
-    print(f"A2_CMDA V4 real model game running at http://127.0.0.1:{port}")
-    print("OpenCLIP will load on the first real scan.")
+    print(f"A2_CMDA {APP_VERSION} running at http://127.0.0.1:{port}")
+    print(f"Health check: http://127.0.0.1:{port}/api/health")
+    if DEPENDENCY_ERROR is None:
+        print("OpenCLIP will load on the first real scan.")
+    else:
+        print("Python dependencies need attention.")
+        print(f"Original error: {DEPENDENCY_ERROR}")
     server.serve_forever()
 
 
@@ -497,7 +783,7 @@ if __name__ == "__main__":
     if "--self-test" in sys.argv:
         run_self_test()
     else:
-        selected_port = 8774
+        selected_port = 8776
         if "--port" in sys.argv:
             selected_port = int(sys.argv[sys.argv.index("--port") + 1])
         run_server(selected_port)

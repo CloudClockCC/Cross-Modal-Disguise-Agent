@@ -15,6 +15,8 @@ Players edit one text sticker on an image, run a local OpenCLIP model, and obser
 - Rule-based stealth score
 - Bilingual Chinese / English interface
 - Local CSV logging for study sessions
+- Local SQLite database logging for study sessions
+- One-click local launcher for Windows
 
 ## Model
 
@@ -32,9 +34,10 @@ Each mission uses a fixed closed set of candidate labels. Confidence values show
 ```text
 .
 ├── index.html
-├── A2_CMDA_Game_V4.4_Modular.html
+├── A2_CMDA_Game_V4.6_LocalDatabase.html
 ├── local_openclip_server_v4.py
-├── start_A2_CMDA_V4_real_model_server.ps1
+├── Start_Game.bat
+├── Stop_Game.bat
 ├── requirements.txt
 ├── styles/
 ├── data/
@@ -50,7 +53,23 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
-Start the local server:
+### Option A: one-click launcher
+
+Double-click:
+
+```text
+Start_Game.bat
+```
+
+The launcher checks Python dependencies, starts the local server, waits for it to become ready, and opens the game in the browser.
+
+To stop the background server, double-click:
+
+```text
+Stop_Game.bat
+```
+
+### Option B: manual start
 
 ```powershell
 cd "path\to\this\repository"
@@ -60,10 +79,16 @@ python .\local_openclip_server_v4.py
 Open the game:
 
 ```text
-http://127.0.0.1:8774/
+http://127.0.0.1:8776/
 ```
 
 The first scan may take longer because the OpenCLIP model is loaded on the first request.
+
+Health check:
+
+```text
+http://127.0.0.1:8776/api/health
+```
 
 ## Static Preview
 
@@ -75,6 +100,7 @@ The local server may generate:
 
 ```text
 real_model_attempt_log.csv
+data_storage/a2_cmda_playtest.db
 runtime_stickered_images/
 ```
 

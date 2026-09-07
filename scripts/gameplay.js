@@ -143,6 +143,7 @@
       const profile = calculateAgentProfile();
       record.title_after_submit = profile.title ? profile.title.en : "";
       record.highest_title_level_after_submit = profile.titleLevel;
+      persistAttempt(record);
       renderAgentProfile();
       showView(allPlayableComplete() ? "ending" : "result");
       if (unlockedTitle) showTitleUnlockModal(unlockedTitle);

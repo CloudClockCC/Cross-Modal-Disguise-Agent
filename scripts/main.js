@@ -78,4 +78,11 @@ function attachEvents() {
     renderGlossary();
     attachEvents();
     resetTrialState();
+    startDatabaseSession();
+    window.addEventListener("beforeunload", () => {
+      postLocalDatabase("/api/session/end", {
+        session_id: state.sessionId,
+        ended_at: new Date().toISOString()
+      });
+    });
     showView("home", { replace: true });

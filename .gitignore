@@ -4,11 +4,13 @@ __pycache__/
 venv/
 env/
 runtime_stickered_images/
+data_storage/
 real_model_attempt_log.csv
+.a2_cmda_server.pid
+logs/
 *_legacy_*.csv
 *.log
 cloudflared-tunnel*.log
 localtunnel*.log
 .DS_Store
 Thumbs.db
-
